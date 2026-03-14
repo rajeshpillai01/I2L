@@ -1,0 +1,42 @@
+{
+    "learned_macros": {
+        "Simple Square Plus One": [
+            "SQUARE",
+            "ADD_ONE"
+        ],
+        "Double then Subtract": [
+            "DOUBLE",
+            "SUBTRACT_ONE"
+        ],
+        "Deep Abstraction": [
+            "Simple Square Plus One",
+            "Simple Square Plus One"
+        ],
+        "Compositional Logic": [
+            "Simple Square Plus One",
+            "Double then Subtract"
+        ],
+        "Fibonacci Sequence": [
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE",
+            "ADD_ONE"
+        ]
+    }
+}
