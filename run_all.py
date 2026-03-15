@@ -69,6 +69,23 @@ def run_pipeline():
     print("\n--- Pipeline Complete ---")
     print("📂 Check 'knowledge_graph.json' to see your AI's new memories!")
 
+    # v2 STRESS TEST: The Coincidence Trap
+    # Input: 2, Target: 4.
+    # Potential rules: SQUARE or DOUBLE.
+    # The Validator must check if the rule works for Input: 3.
+    print("\n[v2 Stress Test: The Coincidence Trap]")
+    res_stress = system.evolve_ai("Ambiguous Rule", 2, 4)
+
+    if res_stress and res_stress[0]:
+        print(f"🏆 V2 SUCCESS: The system found and VERIFIED the rule: {res_stress[0]}")
+    else:
+        print("❌ V2 failure: The system couldn't verify a universal rule.")
+
+    # Starting with [1, 2] instead of [1, 1]
+    # and a target that isn't just +1 away
+    logic_fib, trace_fib = system.evolve_ai("True Fibonacci", [1, 2], 8)
+    print(f"   Trace: {trace_fib}")
+    print(f"   Logic: {logic_fib}")
 
 if __name__ == "__main__":
     run_pipeline()

@@ -9,34 +9,28 @@
             "SUBTRACT_ONE"
         ],
         "Deep Abstraction": [
-            "Simple Square Plus One",
+            "SQUARE",
+            "ADD_ONE",
             "Simple Square Plus One"
         ],
         "Compositional Logic": [
-            "Simple Square Plus One",
-            "Double then Subtract"
+            "ADD_ONE",
+            "SQUARE"
         ],
         "Fibonacci Sequence": [
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE",
-            "ADD_ONE"
+            "SUM_PREV",
+            "SUM_PREV",
+            "SUM_PREV",
+            "SUM_PREV",
+            "SUM_PREV",
+            "SUM_PREV"
+        ],
+        "Ambiguous Rule": [
+            "DOUBLE"
+        ],
+        "True Fibonacci": [
+            "DOUBLE",
+            "DOUBLE"
         ]
     }
 }

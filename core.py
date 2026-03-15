@@ -152,7 +152,99 @@ class LogicDataGenerator:
             dict_writer.writerows(data)
         print(f"✅ Balanced Data exported to {filename}")
 
-# --- 5. THE ORCHESTRATOR (I2L System) ---
+
+import collections
+
+
+class LogicCompressor:
+    """The Architect: Simplifies redundant logic into efficient macros."""
+
+    def compress(self, logic_chain):
+        if not logic_chain or len(logic_chain) < 2:
+            return logic_chain
+
+        compressed = []
+        i = 0
+        while i < len(logic_chain):
+            count = 1
+            # Look ahead for repeating identical atoms
+            while i + count < len(logic_chain) and logic_chain[i] == logic_chain[i + count]:
+                count += 1
+
+            if count > 2:
+                # If an atom repeats more than twice, represent it as a 'Loop'
+                # Example: ['ADD_ONE'] * 5 -> ['5x_ADD_ONE']
+                compressed.append(f"{count}x_{logic_chain[i]}")
+            else:
+                # Otherwise, keep as is
+                compressed.extend([logic_chain[i]] * count)
+            i += count
+
+        return compressed
+
+
+class FitnessScorer:
+    """The Judge: Ranks logic chains by efficiency, density, and simplicity."""
+
+    @staticmethod
+    def score(logic_chain, learned_macros=None):
+        if not logic_chain:
+            return 0
+
+        # 1. Length Penalty: Shorter chains are more 'intelligent'
+        # A 1-step solution is ALWAYS better than a 2-step solution.
+        score = 100 / len(logic_chain)
+
+        # 2. SIMPLICITY BIAS (V3.1): Penalize Macro-bloat
+        # If the AI uses a learned macro, we subtract points.
+        # This forces the AI to prefer Primitives (like SQUARE) over Macros
+        # unless the Macro is truly the only efficient way.
+        if learned_macros:
+            macro_count = sum(1 for atom in logic_chain if atom in learned_macros)
+            score -= (macro_count * 40) # 40 point penalty per macro used
+
+        # 3. Diversity Bonus: Reward varied atoms (prevents lazy repetition)
+        unique_atoms = len(set(logic_chain))
+        diversity_bonus = unique_atoms * 5
+
+        return score + diversity_bonus
+
+
+# --- 5. THE LOGIC VALIDATOR ---
+class LogicValidator:
+    """The Skeptic: Verifies that a logic chain is a universal rule."""
+
+    def __init__(self, executor):
+        self.executor = executor
+
+    def verify(self, logic_chain, original_input, memory):
+        # 1. First, run standard robustness tests
+        test_inputs = [random.randint(1, 20) for _ in range(3)]
+        for test_in in test_inputs:
+            actual_trace = self.executor.run_sequence(test_in, logic_chain, memory=memory)
+            if actual_trace is None: return False
+
+            # 2. THE ANTI-BLOAT SHIELD (Improved for v3.2)
+            if not isinstance(original_input, list) and len(logic_chain) > 1:
+                # Test over a range of numbers to ensure they are truly identical
+                test_points = [2, 5, 10]
+                for atom in Primitives.get_all_atoms():
+                    is_identical = True
+                    for val in test_points:
+                        prim_res = self.executor.run_sequence(val, [atom])
+                        logi_res = self.executor.run_sequence(val, logic_chain, memory=memory)
+
+                        if not prim_res or not logi_res or prim_res[-1] != logi_res[-1]:
+                            is_identical = False
+                            break
+
+                    if is_identical:
+                        print(f"⚠️ TRUE BLOAT: {logic_chain} is just {atom}")
+                        return False # Reject the complex version
+
+        return True
+
+# --- 6. THE ORCHESTRATOR (I2L System) ---
 class I2LSystem:
     """The CNS: Connects Memory, Intuition, and Execution."""
 
@@ -171,9 +263,10 @@ class I2LSystem:
             print(f"🧠 Memory Hit! Using learned macro: {existing_logic}")
             return existing_logic, ["Restored from memory"]
 
-        # 2. SEQUENCE REPEATER (The Fibonacci Fix)
-        # If input is a list, try repeating every atom we have to see if a pattern emerges.
+        # 2. COMPETITIVE SEQUENCE DISCOVERY (v3)
         if isinstance(input_val, list):
+            candidates = []
+
             for atom_name in self.atoms:
                 temp_trace = list(input_val)
                 chain = []
@@ -186,11 +279,22 @@ class I2LSystem:
 
                     temp_trace.append(next_val)
                     chain.append(atom_name)
+
                     if next_val == target_val:
-                        print(f"🚀 PATTERN SUCCESS: Found sequence using {atom_name}!")
-                        self.memory.store(task_label, chain)
-                        return chain, temp_trace
+                        # Pass the learned macros from our memory so the scorer can penalize them
+                        score = FitnessScorer.score(chain, learned_macros=self.memory.graph.get("learned_macros", {}))
+                        candidates.append((score, chain, temp_trace))
+                        break
                     if next_val > target_val: break
+
+            if candidates:
+                # Pick the candidate with the HIGHEST fitness score
+                candidates.sort(key=lambda x: x[0], reverse=True)
+                best_score, best_chain, best_trace = candidates[0]
+
+                print(f"🏆 V3 CHAMPION: {best_chain[0]} (Fitness: {best_score:.2f})")
+                self.memory.store(task_label, best_chain)
+                return best_chain, best_trace
 
         # 3. NEURAL SEARCH (The Math Fix)
         # If it's not a repeating sequence, use the Neural Artwork's intuition.
@@ -198,10 +302,18 @@ class I2LSystem:
         current_atoms = self.atoms + learned_macro_names
         logic_chain, trace = solve_with_artwork(input_val, target_val, available_atoms=current_atoms)
 
+        # 4. Standard Success Path (The v2 Workflow)
         if trace and trace[-1] == target_val:
-            print(f"✨ New Logic Learned! Saving to Knowledge Graph.")
-            self.memory.store(task_label, logic_chain)
-            return logic_chain, trace
+            # Step A: Validate
+            validator = LogicValidator(self.executor)
+            if validator.verify(logic_chain, input_val, self.memory):
+                # Step B: Compress
+                compressor = LogicCompressor()
+                clean_logic = compressor.compress(logic_chain)
+
+                print(f"✨ V2: Logic Verified and Compressed: {clean_logic}")
+                self.memory.store(task_label, clean_logic)
+                return clean_logic, trace
 
         print(f"❌ Evolution failed for {task_label}")
         return None, None # Returning two Nones prevents the "non-iterable" error

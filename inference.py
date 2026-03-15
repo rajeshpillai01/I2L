@@ -1,71 +1,80 @@
 import torch
-from core import Executor, Primitives
+from core import Executor, Primitives, LogicMemory
 from train_artwork import NeuralArtwork
 
 
 def solve_with_artwork(input_val, target_val, available_atoms=None):
-    from core import Primitives, Executor
-
-    # 1. The 'Neural' vocabulary (must match what was used in train_artwork.py)
+    # 1. Vocabulary Setup
     base_atoms = Primitives.get_all_atoms()
     neural_vocab_size = len(base_atoms) + 1
 
-    # 2. The 'Search' vocabulary (includes Macros)
-    if available_atoms is None:
-        available_atoms = base_atoms
+    mem = LogicMemory()
+    macro_names = list(mem.graph.get("learned_macros", {}).keys())
 
-    # This map stays dynamic for the search phase
-    atom_map = {i + 1: atom for i, atom in enumerate(available_atoms)}
+    # The full search space (Primitives + Learned Macros)
+    current_atoms = base_atoms + macro_names if available_atoms is None else available_atoms
+
+    atom_map = {i + 1: atom for i, atom in enumerate(current_atoms)}
     atom_map[0] = None
 
-
+    # 2. Neural Input Preparation
     if isinstance(input_val, list):
         flat_input = [input_val[0], input_val[1], target_val]
     else:
         flat_input = [0, input_val, target_val]
 
-    # Load the model using the NEURAL vocab size
+    # 3. Model Loading
     model = NeuralArtwork(input_dim=3, hidden_dim=64, output_dim=3, vocab_size=neural_vocab_size)
+    try:
+        model.load_state_dict(torch.load("logic_artwork.pth"))
+        model.eval()
+    except Exception as e:
+        print(f"⚠️ Model load failed: {e}. Proceeding with Symbolic Search only.")
 
-    # Now it will load perfectly because it matches the .pth file!
-    model.load_state_dict(torch.load("logic_artwork.pth"))
-    model.eval()
-
-
+    # 4. Neural Inference & Confidence Capture
     with torch.no_grad():
         test_input = torch.tensor([flat_input], dtype=torch.float32)
         raw_output = model(test_input)
-        # 1. Get Neural Guesses
-        probs, indices = torch.topk(raw_output, k=5, dim=2)
+
+        avg_probs = torch.mean(raw_output.squeeze(0), dim=0).tolist()
+        confidence_map = {"NONE": avg_probs[0]}
+        for i, atom in enumerate(base_atoms):
+            if i + 1 < len(avg_probs):
+                confidence_map[atom] = avg_probs[i + 1]
+
+        try:
+            import streamlit as st
+            if hasattr(st, "runtime") and st.runtime.exists():
+                st.session_state.confidence_map = confidence_map
+        except:
+            pass
+
+        probs, indices = torch.topk(raw_output, k=min(5, neural_vocab_size), dim=2)
         indices = indices.squeeze(0).tolist()
 
     executor = Executor()
 
-    # We'll need a memory instance to pass to the executor for macros
-    from core import LogicMemory
-    mem = LogicMemory()
+    # --- THE QUICK WIN CHECK (Anti-Bloat Priority) ---
+    for atom in current_atoms:
+        trace = executor.run_sequence(input_val, [atom], memory=mem)
+        if trace and trace[-1] == target_val:
+            print(f"✅ INSTANT PRIMITIVE SUCCESS: {atom}")
+            return [atom], trace
 
-    # 2. INJECTION: Add Macro Indices to the search space
-    scored_candidates = []
-    macro_names = list(mem.graph.get("learned_macros", {}).keys())
+    # 5. Advanced Search Injection
     stateful_names = Primitives.get_important_atoms()
-    macro_indices = []  # This needs to be populated!
-
     important_indices = []
 
     for idx, atom in atom_map.items():
         if atom in macro_names or atom in stateful_names:
             important_indices.append(idx)
-            scored_candidates.append((idx, 5))
-        elif atom is not None:
-            scored_candidates.append((idx, 10))
 
-    # --- UN-INDENT THESE ---
-    # Now we build the options ONCE using the full important_indices list
+    # Combine Neural Guesses with Stateful/Macro overrides
     step_options = [sorted(list(set(indices[step] + important_indices)),
-                           key=lambda x: 5 if atom_map.get(x) in macro_names else 10)
+                           key=lambda x: 20 if atom_map.get(x) in macro_names else 1)
                     for step in range(3)]
 
+    # 6. Combinatorial Search
     for i in step_options[0]:
         for j in step_options[1]:
             for k in step_options[2]:
@@ -76,25 +85,9 @@ def solve_with_artwork(input_val, target_val, available_atoms=None):
                 trace = executor.run_sequence(input_val, logic_chain, memory=mem)
 
                 if trace and trace[-1] == target_val:
-                    # Determine if we used a macro or just primitives
                     used_macro = any(a in macro_names for a in logic_chain)
                     prefix = "🚀 MACRO-FIRST SUCCESS" if used_macro else "✅ PRIMITIVE SUCCESS"
                     print(f"{prefix}: {logic_chain}")
                     return logic_chain, trace
 
     return None, None
-
-
-# --- TEST IT OUT ---
-if __name__ == "__main__":
-    I, T = 5, 26
-    instructions, result_trace = solve_with_artwork(I, T)
-
-    print(f"\n🎯 Input: {I} | Target: {T}")
-    print(f"🤖 Neural Pathfinding Suggestion: {' -> '.join(instructions)}")
-
-    if result_trace and result_trace[-1] == T:
-        print(f"✅ VERIFIED: The logic is mathematically sound.")
-        print(f"📈 Execution Trace: {result_trace}")
-    else:
-        print(f"❌ FAILED: The Neural Artwork suggested an invalid path.")
