@@ -60,12 +60,26 @@
         ],
         "Fibonacci Sequence": [
             [
-                "SUM_PREV",
-                "SUM_PREV",
-                "SUM_PREV",
-                "SUM_PREV",
-                "SUM_PREV",
-                "SUM_PREV"
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE",
+                "ADD_ONE"
             ]
         ],
         "Ambiguous Rule": [
@@ -82,76 +96,11 @@
         ],
         "True Fibonacci": [
             [
-                "DOUBLE",
-                "DOUBLE"
-            ]
-        ],
-        "Fibonacci Discovery": [
-            [
-                "SUM_PREV",
-                "SUM_PREV",
-                "SUM_PREV",
-                "SUM_PREV",
-                "SUM_PREV",
-                "SUM_PREV"
-            ]
-        ],
-        "SQUARE": [
-            [
-                "SQUARE"
-            ],
-            [
                 "ADD_ONE",
-                "True Fibonacci",
-                "ADD_ONE"
-            ]
-        ],
-        "SQUARE plus 2": [
-            [
-                "Double then Subtract",
-                "DOUBLE",
-                "SUM_PREV"
-            ],
-            [
-                "Double then Subtract",
-                "Ambiguous Rule",
-                "SUM_PREV"
-            ],
-            [
                 "ADD_ONE",
-                "SQUARE plus 2",
-                "SUBTRACT_ONE"
-            ]
-        ],
-        "SQ": [
-            [
-                "DOUBLE",
-                "SUM_PREV",
-                "SUM_PREV"
-            ],
-            [
                 "ADD_ONE",
-                "True Fibonacci",
-                "ADD_ONE"
-            ],
-            [
-                "Ambiguous Rule",
-                "SUM_PREV",
-                "SUM_PREV"
-            ],
-            [
-                "DOUBLE",
-                "DOUBLE",
-                "SUM_PREV"
-            ],
-            [
-                "DOUBLE",
-                "SUM_PREV",
-                "DOUBLE"
-            ],
-            [
                 "ADD_ONE",
-                "SQ",
+                "ADD_ONE",
                 "ADD_ONE"
             ]
         ]
