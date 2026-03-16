@@ -116,7 +116,7 @@ with col1:
             # 2. Metrics
             m1, m2, m3 = st.columns(3)
             m1.metric("Steps", len(steps))
-            m2.metric("Fitness", f"{survivor['score']:.1f}")
+            m2.metric("Fitness", f"{survivor.get('score', 0.0):.1f}")
             m3.metric("Type", st.session_state.last_input_type)
 
             # 3. Execution Table
@@ -130,7 +130,7 @@ with col1:
 
         if results["debunked"]:
             with st.expander("💀 Show Debunked Theories", expanded=False):
-                for debunked in results["debunked"]:
+                for debunked in results.get("debunked"):
                     st.error(f"Logic: `{debunked['logic']}` → Got `{debunked['got']}`")
 
 with col2:

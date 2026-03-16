@@ -241,7 +241,7 @@ class I2LSystem:
                 trace = self.executor.run_sequence(input_val, chain, memory=self.memory)
                 if trace and trace[-1] == target_val:
                     print(f"💡 Recognized Pattern: Linked to '{task_name}'")
-                    return chain, {"survivors": [{"logic": chain, "trace": trace}]}
+                    return chain, {"survivors": [{"logic": chain, "trace": trace, "score": 100.0}],"debunked": []}
 
         # 2. DISCOVERY
         print(f"🔍 Discovery for {task_label}...")
