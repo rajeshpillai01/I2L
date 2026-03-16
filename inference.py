@@ -99,21 +99,30 @@ def solve_with_artwork(input_val, target_val, available_atoms=None):
                 logic_chain = [a for a in raw_chain if a is not None]
                 if not logic_chain: continue
 
-                # Don't re-test if already in podium
                 if any(p["logic"] == logic_chain for p in podium): continue
 
                 trace = executor.run_sequence(input_val, logic_chain, memory=mem)
 
-                if trace and trace[-1] == target_val:
-                    score = FitnessScorer.score(logic_chain, all_macros)
-                    podium.append({"logic": logic_chain, "trace": trace, "score": score})
-                    print(f"📍 Found Candidate: {logic_chain} (Score: {score:.1f})")
+                if trace:
+                    # 1. SUCCESS: Record the candidate
+                    if trace[-1] == target_val:
+                        score = FitnessScorer.score(logic_chain, all_macros)
+                        podium.append({"logic": logic_chain, "trace": trace, "score": score})
+                        print(f"📍 Found Candidate: {logic_chain} (Score: {score:.1f})")
 
-                # STOP ONLY when we hit our target count
+                    # 2. SAFETY BREAK: Prevent runaway growth
+                    # Only apply to numeric results; skip for complex list types if necessary
+                    try:
+                        if trace[-1] > target_val * 2:
+                            continue
+                    except:
+                        pass
+
                 if len(podium) >= k_solutions:
                     break
             if len(podium) >= k_solutions: break
         if len(podium) >= k_solutions: break
+
     # --- 7. FINAL SELECTION ---
     if podium:
         # Sort by score so the best one is index 0
