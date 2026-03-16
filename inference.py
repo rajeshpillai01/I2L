@@ -8,8 +8,13 @@ def solve_with_artwork(input_val, target_val, available_atoms=None):
     base_atoms = Primitives.get_all_atoms()
     neural_vocab_size = len(base_atoms) + 1
 
+    # Instead of just names, we now treat each specific logic chain as a candidate
     mem = LogicMemory()
-    macro_names = list(mem.graph.get("learned_macros", {}).keys())
+    all_macros = mem.graph.get("learned_macros", {})
+    macro_names = list(all_macros.keys())
+
+    # During the search, if the AI suggests a task name,
+    # the Executor will automatically pick the best one from that task's list.
 
     # The full search space (Primitives + Learned Macros)
     current_atoms = base_atoms + macro_names if available_atoms is None else available_atoms
@@ -53,13 +58,24 @@ def solve_with_artwork(input_val, target_val, available_atoms=None):
         indices = indices.squeeze(0).tolist()
 
     executor = Executor()
+    podium = []
+    k_solutions = 3  # How many unique paths to find.This will store our top candidates
 
     # --- THE QUICK WIN CHECK (Anti-Bloat Priority) ---
+    # --- THE QUICK WIN CHECK ---
     for atom in current_atoms:
         trace = executor.run_sequence(input_val, [atom], memory=mem)
         if trace and trace[-1] == target_val:
-            print(f"✅ INSTANT PRIMITIVE SUCCESS: {atom}")
-            return [atom], trace
+            from core import FitnessScorer
+            score = FitnessScorer.score([atom])
+            podium.append({"logic": [atom], "trace": trace, "score": score})
+            # REMOVED: return [atom], trace (We keep looking!)
+
+    # --- 3. NEURAL INPUT PREPARATION ---
+    if isinstance(input_val, list):
+        flat_input = [input_val[0], input_val[1], target_val]
+    else:
+        flat_input = [0, input_val, target_val]
 
     # 5. Advanced Search Injection
     stateful_names = Primitives.get_important_atoms()
@@ -75,6 +91,7 @@ def solve_with_artwork(input_val, target_val, available_atoms=None):
                     for step in range(3)]
 
     # 6. Combinatorial Search
+    from core import FitnessScorer
     for i in step_options[0]:
         for j in step_options[1]:
             for k in step_options[2]:
@@ -82,12 +99,27 @@ def solve_with_artwork(input_val, target_val, available_atoms=None):
                 logic_chain = [a for a in raw_chain if a is not None]
                 if not logic_chain: continue
 
+                # Don't re-test if already in podium
+                if any(p["logic"] == logic_chain for p in podium): continue
+
                 trace = executor.run_sequence(input_val, logic_chain, memory=mem)
 
                 if trace and trace[-1] == target_val:
-                    used_macro = any(a in macro_names for a in logic_chain)
-                    prefix = "🚀 MACRO-FIRST SUCCESS" if used_macro else "✅ PRIMITIVE SUCCESS"
-                    print(f"{prefix}: {logic_chain}")
-                    return logic_chain, trace
+                    score = FitnessScorer.score(logic_chain, all_macros)
+                    podium.append({"logic": logic_chain, "trace": trace, "score": score})
+                    print(f"📍 Found Candidate: {logic_chain} (Score: {score:.1f})")
+
+                # STOP ONLY when we hit our target count
+                if len(podium) >= k_solutions:
+                    break
+            if len(podium) >= k_solutions: break
+        if len(podium) >= k_solutions: break
+    # --- 7. FINAL SELECTION ---
+    if podium:
+        # Sort by score so the best one is index 0
+        podium.sort(key=lambda x: x["score"], reverse=True)
+        best = podium[0]
+        print(f"🏆 Podium Winner: {best['logic']}")
+        return podium # Return the whole list of dictionaries #best['logic'], best['trace']
 
     return None, None

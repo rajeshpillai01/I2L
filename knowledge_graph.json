@@ -1,36 +1,159 @@
 {
     "learned_macros": {
         "Simple Square Plus One": [
-            "SQUARE",
-            "ADD_ONE"
+            [
+                "SQUARE",
+                "ADD_ONE"
+            ],
+            [
+                "SUM_PREV",
+                "SQUARE",
+                "ADD_ONE"
+            ]
         ],
         "Double then Subtract": [
-            "DOUBLE",
-            "SUBTRACT_ONE"
+            [
+                "DOUBLE",
+                "SUBTRACT_ONE"
+            ],
+            [
+                "SUBTRACT_ONE",
+                "SUM_PREV"
+            ],
+            [
+                "SUBTRACT_ONE",
+                "ADD_ONE",
+                "SUM_PREV"
+            ]
         ],
         "Deep Abstraction": [
-            "SQUARE",
-            "ADD_ONE",
-            "Simple Square Plus One"
+            [
+                "SQUARE",
+                "ADD_ONE",
+                "Simple Square Plus One"
+            ],
+            [
+                "Simple Square Plus One",
+                "Simple Square Plus One"
+            ],
+            [
+                "SUM_PREV",
+                "Simple Square Plus One",
+                "Simple Square Plus One"
+            ]
         ],
         "Compositional Logic": [
-            "ADD_ONE",
-            "SQUARE"
+            [
+                "ADD_ONE",
+                "SQUARE"
+            ],
+            [
+                "ADD_ONE",
+                "DOUBLE",
+                "SUM_PREV"
+            ],
+            [
+                "ADD_ONE",
+                "SUM_PREV",
+                "Double then Subtract"
+            ]
         ],
         "Fibonacci Sequence": [
-            "SUM_PREV",
-            "SUM_PREV",
-            "SUM_PREV",
-            "SUM_PREV",
-            "SUM_PREV",
-            "SUM_PREV"
+            [
+                "SUM_PREV",
+                "SUM_PREV",
+                "SUM_PREV",
+                "SUM_PREV",
+                "SUM_PREV",
+                "SUM_PREV"
+            ]
         ],
         "Ambiguous Rule": [
-            "DOUBLE"
+            [
+                "DOUBLE"
+            ],
+            [
+                "SQUARE"
+            ],
+            [
+                "ADD_ONE",
+                "ADD_ONE"
+            ]
         ],
         "True Fibonacci": [
-            "DOUBLE",
-            "DOUBLE"
+            [
+                "DOUBLE",
+                "DOUBLE"
+            ]
+        ],
+        "Fibonacci Discovery": [
+            [
+                "SUM_PREV",
+                "SUM_PREV",
+                "SUM_PREV",
+                "SUM_PREV",
+                "SUM_PREV",
+                "SUM_PREV"
+            ]
+        ],
+        "SQUARE": [
+            [
+                "SQUARE"
+            ],
+            [
+                "ADD_ONE",
+                "True Fibonacci",
+                "ADD_ONE"
+            ]
+        ],
+        "SQUARE plus 2": [
+            [
+                "Double then Subtract",
+                "DOUBLE",
+                "SUM_PREV"
+            ],
+            [
+                "Double then Subtract",
+                "Ambiguous Rule",
+                "SUM_PREV"
+            ],
+            [
+                "ADD_ONE",
+                "SQUARE plus 2",
+                "SUBTRACT_ONE"
+            ]
+        ],
+        "SQ": [
+            [
+                "DOUBLE",
+                "SUM_PREV",
+                "SUM_PREV"
+            ],
+            [
+                "ADD_ONE",
+                "True Fibonacci",
+                "ADD_ONE"
+            ],
+            [
+                "Ambiguous Rule",
+                "SUM_PREV",
+                "SUM_PREV"
+            ],
+            [
+                "DOUBLE",
+                "DOUBLE",
+                "SUM_PREV"
+            ],
+            [
+                "DOUBLE",
+                "SUM_PREV",
+                "DOUBLE"
+            ],
+            [
+                "ADD_ONE",
+                "SQ",
+                "ADD_ONE"
+            ]
         ]
     }
 }
