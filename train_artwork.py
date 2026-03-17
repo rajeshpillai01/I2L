@@ -35,14 +35,15 @@ class NeuralArtwork(nn.Module):
         super().__init__()
         self.encoder = nn.Linear(input_dim, hidden_dim)
         self.relu = nn.ReLU()
-        self.decoder = nn.Linear(hidden_dim, 3 * vocab_size)
+        self.decoder = nn.Linear(hidden_dim, output_dim * vocab_size)
+        self.network = nn.Sequential(self.encoder,self.relu,self.decoder)
+        self.output_dim = output_dim
         self.vocab_size = vocab_size
 
     def forward(self, x):
-        x = self.relu(self.encoder(x))
-        x = self.decoder(x)
-        return x.view(-1, 3, self.vocab_size)
-
+        x = self.network(x)
+        # Reshape to [Batch, Steps, Atoms]
+        return x.view(-1, self.output_dim, self.vocab_size)
 
 # 3. THE TRAINING LOOP
 def train():

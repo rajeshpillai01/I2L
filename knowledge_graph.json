@@ -1,108 +1,25 @@
 {
     "learned_macros": {
-        "Simple Square Plus One": [
-            [
-                "SQUARE",
-                "ADD_ONE"
-            ],
-            [
-                "SUM_PREV",
-                "SQUARE",
-                "ADD_ONE"
-            ]
+        "SquarePlusOne": [
+            "SQUARE",
+            "ADD_ONE"
         ],
-        "Double then Subtract": [
-            [
-                "DOUBLE",
-                "SUBTRACT_ONE"
-            ],
-            [
-                "SUBTRACT_ONE",
-                "SUM_PREV"
-            ],
-            [
-                "SUBTRACT_ONE",
-                "ADD_ONE",
-                "SUM_PREV"
-            ]
+        "Deep_Abstraction": [
+            "SquarePlusOne",
+            "SquarePlusOne"
         ],
-        "Deep Abstraction": [
-            [
-                "SQUARE",
-                "ADD_ONE",
-                "Simple Square Plus One"
-            ],
-            [
-                "Simple Square Plus One",
-                "Simple Square Plus One"
-            ],
-            [
-                "SUM_PREV",
-                "Simple Square Plus One",
-                "Simple Square Plus One"
-            ]
+        "LINEAR_MOVEMENT": [
+            "V_ADD"
         ],
-        "Compositional Logic": [
-            [
-                "ADD_ONE",
-                "SQUARE"
-            ],
-            [
-                "ADD_ONE",
-                "DOUBLE",
-                "SUM_PREV"
-            ],
-            [
-                "ADD_ONE",
-                "SUM_PREV",
-                "Double then Subtract"
-            ]
+        "WALL_BOUNCE_X": [
+            "V_REFLECT_X"
         ],
-        "Fibonacci Sequence": [
-            [
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE"
-            ]
+        "WALL_BOUNCE_Y": [
+            "V_REFLECT_Y"
         ],
-        "Ambiguous Rule": [
-            [
-                "DOUBLE"
-            ],
-            [
-                "SQUARE"
-            ],
-            [
-                "ADD_ONE",
-                "ADD_ONE"
-            ]
-        ],
-        "True Fibonacci": [
-            [
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE",
-                "ADD_ONE"
-            ]
+        "BRICK_DESTRUCTION": [
+            "V_REFLECT_Y",
+            "OBJ_DELETE"
         ]
     }
 }

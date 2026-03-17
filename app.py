@@ -128,7 +128,7 @@ with col1:
             # 4. Visualization
             st.line_chart(trace)
 
-        if results["debunked"]:
+        if results.get("debunked"):
             with st.expander("💀 Show Debunked Theories", expanded=False):
                 for debunked in results.get("debunked"):
                     st.error(f"Logic: `{debunked['logic']}` → Got `{debunked['got']}`")

@@ -1,134 +1,99 @@
 import torch
-from core import Executor, Primitives, LogicMemory
-from train_artwork import NeuralArtwork
+import itertools
+import numpy as np
+from core import Executor, Primitives, LogicMemory, FitnessScorer, LogicValidator
 
 
-def solve_with_artwork(input_val, target_val, available_atoms=None):
-    # 1. Vocabulary Setup
+def solve_with_artwork(input_val, target_val, temp_model, available_atoms=None):
+    # 1. Vocabulary & Memory Setup
     base_atoms = Primitives.get_all_atoms()
-    neural_vocab_size = len(base_atoms) + 1
-
-    # Instead of just names, we now treat each specific logic chain as a candidate
     mem = LogicMemory()
     all_macros = mem.graph.get("learned_macros", {})
     macro_names = list(all_macros.keys())
 
-    # During the search, if the AI suggests a task name,
-    # the Executor will automatically pick the best one from that task's list.
-
-    # The full search space (Primitives + Learned Macros)
-    current_atoms = base_atoms + macro_names if available_atoms is None else available_atoms
-
+    # Union of Primitives and Learned Knowledge
+    current_atoms = sorted(list(set(base_atoms + macro_names)))
     atom_map = {i + 1: atom for i, atom in enumerate(current_atoms)}
     atom_map[0] = None
 
-    # 2. Neural Input Preparation
-    if isinstance(input_val, list):
-        flat_input = [input_val[0], input_val[1], target_val]
-    else:
-        flat_input = [0, input_val, target_val]
+    # 2. Neural Hunch (Ephemeral Inference)
+    indices = []
+    if temp_model is not None:
+        temp_model.eval()
+        with torch.no_grad():
+            # --- THE FIX: Linearized Flattener ---
+            # Converts [2,2] or 5 into a clean list of floats for the Tensor
+            def flatten(val):
+                if isinstance(val, (list, tuple, np.ndarray)):
+                    return [float(x) for x in val]
+                return [float(val)]
 
-    # 3. Model Loading
-    model = NeuralArtwork(input_dim=3, hidden_dim=64, output_dim=3, vocab_size=neural_vocab_size)
-    try:
-        model.load_state_dict(torch.load("logic_artwork.pth"))
-        model.eval()
-    except Exception as e:
-        print(f"⚠️ Model load failed: {e}. Proceeding with Symbolic Search only.")
+            # Construct a fixed-width feature vector
+            # We pad/clip to ensure the model always sees the expected input size
+            raw_features = flatten(input_val) + flatten(target_val)
 
-    # 4. Neural Inference & Confidence Capture
-    with torch.no_grad():
-        test_input = torch.tensor([flat_input], dtype=torch.float32)
-        raw_output = model(test_input)
+            # Ensure we have at least 4 features (2 for in, 2 for target) + 1 context
+            while len(raw_features) < 4:
+                raw_features.append(0.0)
 
-        avg_probs = torch.mean(raw_output.squeeze(0), dim=0).tolist()
-        confidence_map = {"NONE": avg_probs[0]}
-        for i, atom in enumerate(base_atoms):
-            if i + 1 < len(avg_probs):
-                confidence_map[atom] = avg_probs[i + 1]
+            flat_in = [0.0] + raw_features[:4]  # [Context, In_X, In_Y, Target_X, Target_Y]
 
-        try:
-            import streamlit as st
-            if hasattr(st, "runtime") and st.runtime.exists():
-                st.session_state.confidence_map = confidence_map
-        except:
-            pass
+            try:
+                test_input = torch.tensor([flat_in], dtype=torch.float32)
+                raw_output = temp_model(test_input)
+                _, top_indices = torch.topk(raw_output, k=min(10, len(current_atoms) + 1), dim=2)
+                indices = top_indices.squeeze(0).tolist()
+            except Exception as e:
+                # print(f"Neural Hunch Warning: {e}")
+                indices = [[0] * 5 for _ in range(3)]
 
-        probs, indices = torch.topk(raw_output, k=min(5, neural_vocab_size), dim=2)
-        indices = indices.squeeze(0).tolist()
+    if not indices:
+        indices = [[0] * 5 for _ in range(3)]
 
+    # 3. Search Space Prioritization (Dynamic Discovery)
+    # This now calls the Introspective method from core.py
+    stateful_names = Primitives.get_important_atoms()
+    is_seq = isinstance(input_val, (list, tuple, np.ndarray))
+
+    # Identify indices of Macros and Stateful Atoms (like V_ADD)
+    important_indices = [idx for idx, atom in atom_map.items()
+                         if atom in macro_names or (is_seq and atom in stateful_names)]
+
+    step_options = []
+    for step in range(3):
+        # Merge Neural guesses with Important atoms
+        options = list(set(indices[step] + important_indices + [0]))
+
+        def get_prio(idx):
+            atom = atom_map.get(idx)
+            if atom in macro_names: return 3
+            if atom in stateful_names: return 2
+            return 1 if idx != 0 else 0
+
+        step_options.append(sorted(options, key=get_prio, reverse=True))
+
+    # 4. Combinatorial Execution
     executor = Executor()
     podium = []
-    k_solutions = 3  # How many unique paths to find.This will store our top candidates
 
-    # --- THE QUICK WIN CHECK (Anti-Bloat Priority) ---
-    # --- THE QUICK WIN CHECK ---
-    for atom in current_atoms:
-        trace = executor.run_sequence(input_val, [atom], memory=mem)
+    # We increase search depth slightly for Physics tasks
+    for combo in itertools.product(*step_options):
+        logic_chain = [atom_map[idx] for idx in combo if idx != 0 and atom_map.get(idx)]
+        if not logic_chain or any(p["logic"] == logic_chain for p in podium): continue
+
+        # The Executor now handles the 'history' (velocity) via parametric injection
+        trace = executor.run_sequence(input_val, logic_chain, memory=mem)
+
         if trace and trace[-1] == target_val:
-            from core import FitnessScorer
-            score = FitnessScorer.score([atom])
-            podium.append({"logic": [atom], "trace": trace, "score": score})
-            # REMOVED: return [atom], trace (We keep looking!)
+            # Verify the logic holds across different randomized seeds
+            if LogicValidator.verify(executor, logic_chain, input_val, memory=mem):
+                score = FitnessScorer.score(logic_chain, input_val, all_macros)
+                podium.append({"logic": logic_chain, "trace": trace, "score": score})
+                print(f"📍 Found Verified Candidate: {logic_chain}")
 
-    # --- 3. NEURAL INPUT PREPARATION ---
-    if isinstance(input_val, list):
-        flat_input = [input_val[0], input_val[1], target_val]
-    else:
-        flat_input = [0, input_val, target_val]
+        if len(podium) >= 3: break
 
-    # 5. Advanced Search Injection
-    stateful_names = Primitives.get_important_atoms()
-    important_indices = []
-
-    for idx, atom in atom_map.items():
-        if atom in macro_names or atom in stateful_names:
-            important_indices.append(idx)
-
-    # Combine Neural Guesses with Stateful/Macro overrides
-    step_options = [sorted(list(set(indices[step] + important_indices)),
-                           key=lambda x: 20 if atom_map.get(x) in macro_names else 1)
-                    for step in range(3)]
-
-    # 6. Combinatorial Search
-    from core import FitnessScorer
-    for i in step_options[0]:
-        for j in step_options[1]:
-            for k in step_options[2]:
-                raw_chain = [atom_map.get(idx) for idx in [i, j, k]]
-                logic_chain = [a for a in raw_chain if a is not None]
-                if not logic_chain: continue
-
-                if any(p["logic"] == logic_chain for p in podium): continue
-
-                trace = executor.run_sequence(input_val, logic_chain, memory=mem)
-
-                if trace:
-                    # 1. SUCCESS: Record the candidate
-                    if trace[-1] == target_val:
-                        score = FitnessScorer.score(logic_chain, all_macros)
-                        podium.append({"logic": logic_chain, "trace": trace, "score": score})
-                        print(f"📍 Found Candidate: {logic_chain} (Score: {score:.1f})")
-
-                    # 2. SAFETY BREAK: Prevent runaway growth
-                    # Only apply to numeric results; skip for complex list types if necessary
-                    try:
-                        if trace[-1] > target_val * 2:
-                            continue
-                    except:
-                        pass
-
-                if len(podium) >= k_solutions:
-                    break
-            if len(podium) >= k_solutions: break
-        if len(podium) >= k_solutions: break
-
-    # --- 7. FINAL SELECTION ---
     if podium:
-        # Sort by score so the best one is index 0
         podium.sort(key=lambda x: x["score"], reverse=True)
-        best = podium[0]
-        print(f"🏆 Podium Winner: {best['logic']}")
-        return podium # Return the whole list of dictionaries #best['logic'], best['trace']
-
-    return None, None
+        return podium
+    return None
